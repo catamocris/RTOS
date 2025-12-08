@@ -1,6 +1,5 @@
-#include <stdint.h>
+#include "rtos.h"
 
-// simboluri din linker
 extern uint32_t _estack;
 extern uint32_t _sidata;  // start init values for .data (in FLASH)
 extern uint32_t _sdata;   // start of .data in RAM
@@ -14,8 +13,11 @@ void Reset_Handler();
 void Default_Handler();
 void SysTick_Handler();
 
-extern void rtos_tick_inc();
+extern int main();
 
+// ----------------------------------------------
+// Vector Table
+// ----------------------------------------------
 __attribute__((section(".isr_vector")))
 void (* const vector_table[])(void) = {
     (void (*)(void))(&_estack),   // 0: initial stack pointer
@@ -33,35 +35,35 @@ void (* const vector_table[])(void) = {
     SysTick_Handler,              // 15: SysTick
 };
 
+// ----------------------------------------------
+// Handlers
+// ----------------------------------------------
+void Default_Handler(){
+    while(1){}
+}
+
 void Reset_Handler(){
     uint32_t *src;
     uint32_t *dst;
 
-    // copiere .data
     src = &_sidata;
     dst = &_sdata;
     while (dst < &_edata) {
         *dst++ = *src++;
     }
 
-    // initializare .bss cu 0
     dst = &_sbss;
     while (dst < &_ebss) {
         *dst++ = 0u;
     }
 
-    // apel main
     extern int main();
     main();
 
-    // daca main() revine, se blocheaza intr-o bucla infinita
     while(1){}
 }
 
-void Default_Handler(){
-    while(1){}
-}
 
 void SysTick_Handler(){
-    rtos_tick_inc();
+    rtos_tick_handler();
 }

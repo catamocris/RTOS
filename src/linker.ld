@@ -1,30 +1,29 @@
-/* src/linker.ld */
-
+/* Memoria pentru Netduino/STM32F4-like */
 MEMORY
 {
-    FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 1024K
-    RAM   (rwx): ORIGIN = 0x20000000, LENGTH = 128K
+    FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
+    RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
 
-/* top of stack */
+/* Vârful stivei */
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
 SECTIONS
 {
-    /* Vector table la începutul FLASH */
+    /* Vector table la începutul flash-ului */
     .isr_vector :
     {
         KEEP(*(.isr_vector))
     } > FLASH
 
-    /* Cod și date constante */
+    /* Cod și rodata */
     .text :
     {
         *(.text*)
         *(.rodata*)
     } > FLASH
 
-    /* Date inițializate (RAM încărcat din FLASH) */
+    /* Date inițializate (.data) – în RAM, dar imaginea în FLASH */
     .data : AT(ADDR(.text) + SIZEOF(.text))
     {
         _sdata = .;
@@ -32,10 +31,10 @@ SECTIONS
         _edata = .;
     } > RAM
 
-    /* Adresa din FLASH de unde copiăm .data */
+    /* Adresa din FLASH de unde copiem .data */
     _sidata = LOADADDR(.data);
 
-    /* Date neinițializate (.bss) – zero la startup */
+    /* Date neinițializate (.bss) */
     .bss :
     {
         _sbss = .;
