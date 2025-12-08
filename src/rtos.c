@@ -54,9 +54,6 @@ void rtos_task_create(void (*task_fn)(void), uint32_t priority){
 
     // context software (R4..R11) va fi salvat/restaurat ulterior
     tcb->stack_ptr = &stack[size - 16];
-
-
-    tcb->stack_ptr = &stack[size - 8];
     
     tcb_count++;
 }
