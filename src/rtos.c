@@ -25,6 +25,7 @@ static uint32_t top_priority_mask = 0;
 volatile uint32_t g_tick = 0;
 static volatile uint32_t rtos_started=0;
 extern void systick_init(void);
+
 //Lista de timere și statistici determinism
 static rtos_timer_t *timer_list = NULL;
 
@@ -59,7 +60,7 @@ void rtos_tick_handler()
         ready_insert(t);
     }
 
-    // 2) timeouts pentru task-uri blocate (scan pool - max mic, ok)
+    // 2) timeouts pentru task-uri blocate
     for (uint32_t i = 0; i < tcb_count; i++) {
         rtos_tcb_t *t = &tcb_pool[i];
         if ((t->state == TASK_BLOCKED_SEM ||
@@ -79,8 +80,7 @@ void rtos_tick_handler()
         }
     }
 
-    // 3) soft timers (lasam, dar vezi nota de ISR minimal)
-    // (optional: lasam callback-urile sa fie super scurte)
+    // 3) soft timers
     rtos_timer_t *timer = timer_list;
     while (timer != NULL) {
         if (timer->active) {
@@ -250,7 +250,7 @@ void PendSV_Handler(void)
         "LDMIA r0!, {r4-r11}          \n"
         "MSR   PSP, r0                \n"
 
-        // IMPORTANT: intoarcere in Thread mode folosind PSP
+        // intoarcere in Thread mode folosind PSP
         "LDR   lr, =0xFFFFFFFD        \n"
         "BX    lr                     \n"
     );
@@ -367,7 +367,7 @@ int rtos_sem_wait_timeout(rtos_sem_t *sem, uint32_t timeout_ticks)
         // 1) semafor disponibil -> il luam si iesim
         if (sem->count > 0) {
             sem->count--;
-            current_task->wait_res = RTOS_WAIT_OK;      // <-- CORECT
+            current_task->wait_res = RTOS_WAIT_OK;
             current_task->wake_tick = 0;
             current_task->wait_obj = NULL;
             __asm volatile("cpsie i" : : : "memory");
@@ -384,7 +384,7 @@ int rtos_sem_wait_timeout(rtos_sem_t *sem, uint32_t timeout_ticks)
         // 3) blocam task-ul pe semafor
         current_task->state = TASK_BLOCKED_SEM;
         current_task->wait_obj = (void*)sem;
-        current_task->wait_res = RTOS_WAIT_PENDING;    // <-- CORECT
+        current_task->wait_res = RTOS_WAIT_PENDING;
 
         // set timeout: wake_tick=0 inseamna "infinit"
         if (timeout_ticks != 0xFFFFFFFFu) {

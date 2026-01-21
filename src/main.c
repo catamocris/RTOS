@@ -28,6 +28,7 @@ extern volatile uint32_t g_pi_enabled;
 // ----------------------------------------------
 rtos_queue_t q_date;
 rtos_mutex_t demo_mutex;
+rtos_sem_t demo_sem;
 volatile uint32_t msj_trimise = 0;
 volatile uint32_t msj_primite = 0;
 volatile uint32_t ultimul_mesaj = 0;
@@ -284,6 +285,35 @@ void task_pi_high_waiter(void) {
     }
 }
 
+// ----------------------------------------------
+// Sem Task
+// ----------------------------------------------
+void task_sem_waiter(void)
+{
+    while (1) {
+        uart_puts("[SEM] WAIT\n");
+        rtos_sem_wait(&demo_sem);
+
+        uart_puts("[SEM] GOT SEM\n");
+        uart_puts(" @ tick=");
+        uart_print_uint(rtos_now());
+        uart_puts("\n");
+
+        rtos_delay(1000);
+    }
+}
+
+void task_sem_signaler(void)
+{
+    rtos_delay(500);   
+
+    while (1) {
+        uart_puts("[SEM] SIGNAL\n");
+        rtos_sem_signal(&demo_sem);
+
+        rtos_delay(2000);
+    }
+}
 
 // ----------------------------------------------
 // Idle Task
@@ -329,6 +359,8 @@ int main(){
     rtos_init();
     rtos_queue_init(&q_date);
     rtos_mutex_init(&demo_mutex);
+    rtos_sem_init(&demo_sem, 0);
+
 
     // Initializare si pornire timere
     rtos_timer_init(&timer_1sec, 1000, timer_1sec_callback);
@@ -337,12 +369,19 @@ int main(){
     uart_puts("Creating tasks...\n");
 
     // Creare task-uri (prioritate crescătoare)
-    //rtos_task_create(idle_task, 0);           // Prioritate minimă
-    //rtos_task_create(task_gpio_blink, 1);     // Prioritate joasă - blink task
-    //rtos_task_create(task_producator, 2);     // Prioritate medie
-    //rtos_task_create(task_consumator, 3);     // Prioritate medie-înaltă
-    //rtos_task_create(task_rms_t2, 4);         // T2 = 20ms → prioritate mare
-    //rtos_task_create(task_rms_t1, 5);         // T1 = 5ms → prioritate maximă
+
+    rtos_task_create(idle_task, 0);           // Prioritate minimă
+
+    rtos_task_create(task_gpio_blink, 1);     // Prioritate joasă - blink task
+
+    rtos_task_create(task_producator, 2);     // Prioritate medie
+    rtos_task_create(task_consumator, 3);     // Prioritate medie-înaltă
+
+    rtos_task_create(task_sem_waiter, 2);
+    rtos_task_create(task_sem_signaler, 3);
+
+    rtos_task_create(task_rms_t2, 4);         // T2 = 20ms → prioritate mare
+    rtos_task_create(task_rms_t1, 5);         // T1 = 5ms → prioritate maximă
 
     rtos_task_create(task_pi_low_owner, 1);
     rtos_task_create(task_pi_medium_hog, 3);
